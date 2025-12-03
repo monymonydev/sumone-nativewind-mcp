@@ -1,0 +1,241 @@
+#!/usr/bin/env node
+
+import { Server } from '@modelcontextprotocol/sdk/server/index.js'
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from '@modelcontextprotocol/sdk/types.js'
+
+import { analyzeComponent } from './tools/analyzeComponent.js'
+import { convertStyles } from './tools/convertStyles.js'
+import { getTokenMapping } from './tools/getTokenMapping.js'
+import { suggestMigration } from './tools/suggestMigration.js'
+import { batchAnalyze } from './tools/batchAnalyze.js'
+
+const server = new Server(
+  {
+    name: 'sumone-nativewind-mcp',
+    version: '0.1.0',
+  },
+  {
+    capabilities: {
+      tools: {},
+    },
+  }
+)
+
+// List available tools
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: 'analyze_component',
+        description:
+          'Analyze styling patterns in a React Native component file. Identifies styled-components, Tamagui styled(), and ui-core props. Returns categorization of patterns as auto-convertible, AI-assisted, or manual.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            filePath: {
+              type: 'string',
+              description: 'Absolute path to the .tsx file to analyze',
+            },
+          },
+          required: ['filePath'],
+        },
+      },
+      {
+        name: 'convert_styles',
+        description:
+          'Auto-convert deterministic styling patterns to NativeWind className syntax. Returns converted code for simple patterns and skipped items with reasons for complex ones.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            filePath: {
+              type: 'string',
+              description: 'Absolute path to the .tsx file to convert',
+            },
+            dryRun: {
+              type: 'boolean',
+              description: 'Preview changes without applying (default: true)',
+            },
+          },
+          required: ['filePath'],
+        },
+      },
+      {
+        name: 'get_token_mapping',
+        description:
+          'Map a Tamagui/ui-theme token to its Tailwind class equivalent. Supports color tokens ($coral100), spacing tokens ($16), and typography tokens ($body2R).',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            token: {
+              type: 'string',
+              description: 'Token to map (e.g., $coral100, $gray900, $16, $body2R)',
+            },
+            type: {
+              type: 'string',
+              enum: ['color', 'spacing', 'typography', 'all'],
+              description: 'Token type hint (optional, auto-detected if omitted)',
+            },
+          },
+          required: ['token'],
+        },
+      },
+      {
+        name: 'suggest_migration',
+        description:
+          'Generate migration spec for complex styling patterns. Returns cva config for Tamagui variants, clsx patterns for conditionals, and hybrid approaches for dynamic values.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            code: {
+              type: 'string',
+              description: 'Code snippet containing styling to migrate',
+            },
+            context: {
+              type: 'string',
+              description: 'Additional context about the component purpose',
+            },
+          },
+          required: ['code'],
+        },
+      },
+      {
+        name: 'batch_analyze',
+        description:
+          'Analyze multiple files in a directory for migration planning. Returns summary statistics, pattern counts, token usage, and complex cases requiring manual attention.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            directory: {
+              type: 'string',
+              description: 'Directory path to scan',
+            },
+            pattern: {
+              type: 'string',
+              description: 'File pattern to match (default: **/*.tsx)',
+            },
+            limit: {
+              type: 'number',
+              description: 'Maximum files to analyze (default: 100)',
+            },
+          },
+          required: ['directory'],
+        },
+      },
+    ],
+  }
+})
+
+// Handle tool calls
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args = {} } = request.params
+
+  try {
+    switch (name) {
+      case 'analyze_component': {
+        if (!args.filePath) throw new Error('filePath is required')
+        const result = analyzeComponent({
+          filePath: args.filePath as string,
+        })
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        }
+      }
+
+      case 'convert_styles': {
+        if (!args.filePath) throw new Error('filePath is required')
+        const result = convertStyles({
+          filePath: args.filePath as string,
+          dryRun: args.dryRun as boolean | undefined,
+        })
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        }
+      }
+
+      case 'get_token_mapping': {
+        if (!args.token) throw new Error('token is required')
+        const result = getTokenMapping({
+          token: args.token as string,
+          type: args.type as 'color' | 'spacing' | 'typography' | 'all' | undefined,
+        })
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        }
+      }
+
+      case 'suggest_migration': {
+        if (!args.code) throw new Error('code is required')
+        const result = suggestMigration({
+          code: args.code as string,
+          context: args.context as string | undefined,
+        })
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        }
+      }
+
+      case 'batch_analyze': {
+        if (!args.directory) throw new Error('directory is required')
+        const result = batchAnalyze({
+          directory: args.directory as string,
+          pattern: args.pattern as string | undefined,
+          limit: args.limit as number | undefined,
+        })
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        }
+      }
+
+      default:
+        throw new Error(`Unknown tool: ${name}`)
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Error: ${message}`,
+        },
+      ],
+      isError: true,
+    }
+  }
+})
+
+async function main() {
+  const transport = new StdioServerTransport()
+  await server.connect(transport)
+  console.error('sumone-nativewind-mcp server running on stdio')
+}
+
+main().catch(console.error)
