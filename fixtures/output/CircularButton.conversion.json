@@ -1,0 +1,19 @@
+{
+  "conversions": [
+    {
+      "original": "<YStack\n      width={size}\n      height={size}\n      borderRadius={size / 2}\n      borderWidth={0.5}\n      borderColor={color.gray[100]}\n      backgroundColor=\"white\"\n      activeOpacity={activeOpacity}\n      justifyContent=\"center\"\n      alignItems=\"center\"\n      onPress={onPress}\n      disabled={disabled}\n      style={style}>",
+      "converted": "<View className=\"border-[0.5px] bg-white justify-center items-center\" style={[{ width: size, height: size, borderRadius: size / 2, borderColor: color.gray[100] }, style]} activeOpacity={activeOpacity} onPress={onPress} disabled={disabled}>",
+      "confidence": "medium",
+      "lineNumber": 30,
+      "type": "ui-core"
+    },
+    {
+      "original": "<Image source={source} width={size} height={size} />",
+      "converted": "<Image style={{ width: size, height: size }} source={source}>",
+      "confidence": "medium",
+      "lineNumber": 43,
+      "type": "ui-core"
+    }
+  ],
+  "skipped": []
+}

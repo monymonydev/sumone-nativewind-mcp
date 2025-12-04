@@ -50,9 +50,15 @@ export type UiCoreProp = {
   dependencies?: string[]
 }
 
+export type PassthroughProp = {
+  name: string
+  rawValue: string
+}
+
 export type UiCorePropsPattern = {
   componentType: string
   props: UiCoreProp[]
+  passthroughProps: PassthroughProp[]
   isAutoConvertible: boolean
   sourceLocation: SourceLocation
   rawCode: string
@@ -93,8 +99,9 @@ export type TokenMappingResult = {
   token: string
   tailwindClass: string | null
   cssValue: string
-  category: 'color' | 'spacing' | 'typography' | 'radius' | 'unknown'
+  category: 'color' | 'spacing' | 'typography' | 'radius' | 'legacy-color' | 'legacy-typography' | 'unknown'
   customRequired: boolean
+  isLegacy?: boolean
   notes?: string
 }
 
@@ -103,6 +110,7 @@ export type MigrationSpec = {
     patternType: string
     dynamicDependencies: string[]
     conditionalLogic: string[]
+    legacyTokens?: string[]
   }
   migrationSpec: {
     approach: 'className-only' | 'cva' | 'clsx' | 'style-prop-hybrid'

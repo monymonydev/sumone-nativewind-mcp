@@ -1,0 +1,130 @@
+{
+  "file": "fixtures/ui-core/CircularButton.tsx",
+  "patterns": {
+    "styledComponents": [],
+    "tamaguiStyled": [],
+    "uiCoreProps": [
+      {
+        "componentType": "YStack",
+        "props": [
+          {
+            "name": "width",
+            "value": "size",
+            "isStatic": false,
+            "dependencies": [
+              "size"
+            ]
+          },
+          {
+            "name": "height",
+            "value": "size",
+            "isStatic": false,
+            "dependencies": [
+              "size"
+            ]
+          },
+          {
+            "name": "borderRadius",
+            "value": "size / 2",
+            "isStatic": false,
+            "dependencies": [
+              "size"
+            ]
+          },
+          {
+            "name": "borderWidth",
+            "value": 0.5,
+            "isStatic": true
+          },
+          {
+            "name": "borderColor",
+            "value": "color.gray[100]",
+            "isStatic": false,
+            "dependencies": [
+              "color"
+            ]
+          },
+          {
+            "name": "backgroundColor",
+            "value": "white",
+            "isStatic": true
+          },
+          {
+            "name": "justifyContent",
+            "value": "center",
+            "isStatic": true
+          },
+          {
+            "name": "alignItems",
+            "value": "center",
+            "isStatic": true
+          }
+        ],
+        "passthroughProps": [
+          {
+            "name": "activeOpacity",
+            "rawValue": "activeOpacity"
+          },
+          {
+            "name": "onPress",
+            "rawValue": "onPress"
+          },
+          {
+            "name": "disabled",
+            "rawValue": "disabled"
+          },
+          {
+            "name": "style",
+            "rawValue": "style"
+          }
+        ],
+        "isAutoConvertible": false,
+        "sourceLocation": {
+          "line": 30,
+          "column": 0
+        },
+        "rawCode": "<YStack\n      width={size}\n      height={size}\n      borderRadius={size / 2}\n      borderWidth={0.5}\n      borderColor={color.gray[100]}\n      backgroundColor=\"white\"\n      activeOpacity={activeOpacity}\n      justifyContent=\"center\"\n      alignItems=\"center\"\n      onPress={onPress}\n      disabled={disabled}\n      style={style}>"
+      },
+      {
+        "componentType": "Image",
+        "props": [
+          {
+            "name": "width",
+            "value": "size",
+            "isStatic": false,
+            "dependencies": [
+              "size"
+            ]
+          },
+          {
+            "name": "height",
+            "value": "size",
+            "isStatic": false,
+            "dependencies": [
+              "size"
+            ]
+          }
+        ],
+        "passthroughProps": [
+          {
+            "name": "source",
+            "rawValue": "source"
+          }
+        ],
+        "isAutoConvertible": false,
+        "sourceLocation": {
+          "line": 43,
+          "column": 0
+        },
+        "rawCode": "<Image source={source} width={size} height={size} />"
+      }
+    ]
+  },
+  "summary": {
+    "totalPatterns": 2,
+    "autoConvertible": 0,
+    "aiAssisted": 0,
+    "manualRequired": 2
+  },
+  "tokens": []
+}

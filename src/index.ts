@@ -12,6 +12,7 @@ import { convertStyles } from './tools/convertStyles.js'
 import { getTokenMapping } from './tools/getTokenMapping.js'
 import { suggestMigration } from './tools/suggestMigration.js'
 import { batchAnalyze } from './tools/batchAnalyze.js'
+import { generateTailwindConfig } from './tools/generateTailwindConfig.js'
 
 const server = new Server(
   {
@@ -66,18 +67,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       {
         name: 'get_token_mapping',
         description:
-          'Map a Tamagui/ui-theme token to its Tailwind class equivalent. Supports color tokens ($coral100), spacing tokens ($16), and typography tokens ($body2R).',
+          'Map a Tamagui/ui-theme token to its Tailwind class equivalent. Supports design system tokens ($coral100, $body2R), legacy tokens (theme.main.colors.mono100, theme.fonts.heading1), and spacing tokens ($16).',
         inputSchema: {
           type: 'object',
           properties: {
             token: {
               type: 'string',
-              description: 'Token to map (e.g., $coral100, $gray900, $16, $body2R)',
+              description: 'Token to map (e.g., $coral100, $body2R, theme.main.colors.mono100, theme.fonts.heading1)',
             },
             type: {
               type: 'string',
-              enum: ['color', 'spacing', 'typography', 'all'],
+              enum: ['color', 'spacing', 'typography', 'legacy', 'all'],
               description: 'Token type hint (optional, auto-detected if omitted)',
+            },
+            locale: {
+              type: 'string',
+              enum: ['ko', 'en', 'ja', 'tw', 'zh', 'de', 'es', 'fr', 'vi', 'th'],
+              description: 'Locale for typography mapping (default: ko). Affects font family selection.',
             },
           },
           required: ['token'],
@@ -125,6 +131,25 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ['directory'],
         },
       },
+      {
+        name: 'generate_tailwind_config',
+        description:
+          'Generate a complete Tailwind config with design system colors, legacy colors (prefixed with legacy-), and locale-aware font families.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            includeLegacy: {
+              type: 'boolean',
+              description: 'Include legacy colors from sumone-mobile theme (default: true)',
+            },
+            locale: {
+              type: 'string',
+              enum: ['ko', 'en', 'ja', 'tw', 'zh', 'de', 'es', 'fr', 'vi', 'th'],
+              description: 'Primary locale for font family config (default: ko)',
+            },
+          },
+        },
+      },
     ],
   }
 })
@@ -170,7 +195,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (!args.token) throw new Error('token is required')
         const result = getTokenMapping({
           token: args.token as string,
-          type: args.type as 'color' | 'spacing' | 'typography' | 'all' | undefined,
+          type: args.type as 'color' | 'spacing' | 'typography' | 'legacy' | 'all' | undefined,
+          locale: args.locale as 'ko' | 'en' | 'ja' | 'tw' | 'zh' | 'de' | 'es' | 'fr' | 'vi' | 'th' | undefined,
         })
         return {
           content: [
@@ -204,6 +230,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           directory: args.directory as string,
           pattern: args.pattern as string | undefined,
           limit: args.limit as number | undefined,
+        })
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        }
+      }
+
+      case 'generate_tailwind_config': {
+        const result = generateTailwindConfig({
+          includeLegacy: args.includeLegacy as boolean | undefined,
+          locale: args.locale as 'ko' | 'en' | 'ja' | 'tw' | 'zh' | 'de' | 'es' | 'fr' | 'vi' | 'th' | undefined,
         })
         return {
           content: [

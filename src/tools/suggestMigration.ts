@@ -4,7 +4,48 @@ import { parseUiCoreProps } from '../parsers/uiCore.js'
 import { parseStyledComponents } from '../parsers/styledComponents.js'
 import { generateCvaConfig } from '../converters/cvaGenerator.js'
 import { convertProperty } from '../converters/rules.js'
-import { mapToken } from '../tokens/index.js'
+import { mapToken, mapLegacyColorToken, LEGACY_COLOR_MIGRATIONS } from '../tokens/index.js'
+
+// Patterns that indicate legacy theme usage
+const LEGACY_THEME_PATTERNS = [
+  /theme\.main\.colors\.\w+/g,
+  /theme\.fonts\.\w+/g,
+  /theme\.colors\.\w+/g,
+  /colors\.(mono|main|sub|point|error|gray)\d+/g,
+]
+
+function detectLegacyPatterns(code: string): {
+  legacyTokens: string[]
+  warnings: string[]
+} {
+  const legacyTokens: string[] = []
+  const warnings: string[] = []
+
+  for (const pattern of LEGACY_THEME_PATTERNS) {
+    const matches = code.matchAll(pattern)
+    for (const match of matches) {
+      const token = match[0]
+      if (!legacyTokens.includes(token)) {
+        legacyTokens.push(token)
+
+        // Check if there's a migration recommendation
+        const colorName = token.split('.').pop() || ''
+        const migrationTarget = LEGACY_COLOR_MIGRATIONS[colorName as keyof typeof LEGACY_COLOR_MIGRATIONS]
+        if (migrationTarget) {
+          warnings.push(
+            `Legacy "${token}" -> can migrate to design system "${migrationTarget}"`
+          )
+        } else {
+          warnings.push(
+            `Legacy "${token}" -> use legacy-* prefix (e.g., bg-legacy-mono-100)`
+          )
+        }
+      }
+    }
+  }
+
+  return { legacyTokens, warnings }
+}
 
 export type SuggestMigrationInput = {
   code: string
@@ -14,6 +55,9 @@ export type SuggestMigrationInput = {
 export function suggestMigration(input: SuggestMigrationInput): MigrationSpec {
   const { code, context } = input
 
+  // Detect legacy patterns first
+  const { legacyTokens, warnings: legacyWarnings } = detectLegacyPatterns(code)
+
   // Try to parse as different patterns
   const styledComponents = parseStyledComponents(code)
   const tamaguiStyled = parseTamaguiStyled(code)
@@ -21,25 +65,41 @@ export function suggestMigration(input: SuggestMigrationInput): MigrationSpec {
 
   // Tamagui with variants - generate cva config
   if (tamaguiStyled.length > 0 && tamaguiStyled[0].variants.length > 0) {
-    return generateCvaConfig(tamaguiStyled[0])
+    const result = generateCvaConfig(tamaguiStyled[0])
+    result.warnings = [...(result.warnings || []), ...legacyWarnings]
+    if (legacyTokens.length > 0) {
+      result.analysis.legacyTokens = legacyTokens
+    }
+    return result
   }
 
   // styled-components with dynamic props
   if (styledComponents.length > 0 && !styledComponents[0].isAutoConvertible) {
-    return generateStyledComponentMigration(styledComponents[0], context)
+    const result = generateStyledComponentMigration(styledComponents[0], context)
+    result.warnings = [...(result.warnings || []), ...legacyWarnings]
+    if (legacyTokens.length > 0) {
+      result.analysis.legacyTokens = legacyTokens
+    }
+    return result
   }
 
   // ui-core with dynamic props
   if (uiCoreProps.length > 0 && !uiCoreProps[0].isAutoConvertible) {
-    return generateUiCoreMigration(uiCoreProps[0], context)
+    const result = generateUiCoreMigration(uiCoreProps[0], context)
+    result.warnings = [...(result.warnings || []), ...legacyWarnings]
+    if (legacyTokens.length > 0) {
+      result.analysis.legacyTokens = legacyTokens
+    }
+    return result
   }
 
   // Default - provide basic migration spec
   return {
     analysis: {
-      patternType: 'unknown',
+      patternType: legacyTokens.length > 0 ? 'legacy-theme-usage' : 'unknown',
       dynamicDependencies: [],
       conditionalLogic: [],
+      legacyTokens: legacyTokens.length > 0 ? legacyTokens : undefined,
     },
     migrationSpec: {
       approach: 'className-only',
@@ -47,8 +107,12 @@ export function suggestMigration(input: SuggestMigrationInput): MigrationSpec {
       classNames: [],
       dynamicClasses: [],
     },
-    example: '// Could not determine pattern. Please provide more context.',
-    warnings: ['Could not parse the provided code snippet'],
+    example: legacyTokens.length > 0
+      ? `// Legacy tokens detected. Replace with:\n${legacyWarnings.map((w) => `// ${w}`).join('\n')}`
+      : '// Could not determine pattern. Please provide more context.',
+    warnings: legacyTokens.length > 0
+      ? legacyWarnings
+      : ['Could not parse the provided code snippet'],
   }
 }
 

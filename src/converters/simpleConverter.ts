@@ -125,22 +125,14 @@ export function convertUiCoreProps(
   const conversions: ConversionResult[] = []
   const skipped: SkippedConversion[] = []
 
-  if (!pattern.isAutoConvertible) {
-    const dynamicProps = pattern.props.filter((p) => !p.isStatic)
-    skipped.push({
-      code: pattern.rawCode,
-      reason: `Has dynamic props: ${dynamicProps.map((p) => p.name).join(', ')}`,
-      lineNumber: pattern.sourceLocation.line,
-      suggestedApproach: 'Use clsx for conditional classes',
-    })
-    return { conversions, skipped }
-  }
+  // Separate static vs dynamic style props
+  const staticProps = pattern.props.filter((p) => p.isStatic)
+  const dynamicStyleProps = pattern.props.filter((p) => !p.isStatic)
 
+  // Build className from static props
   const classes: string[] = []
 
-  for (const prop of pattern.props) {
-    if (!prop.isStatic) continue
-
+  for (const prop of staticProps) {
     // Handle Tamagui tokens
     if (prop.tamaguiToken) {
       const tokenResult = mapToken(prop.tamaguiToken)
@@ -159,17 +151,42 @@ export function convertUiCoreProps(
     }
   }
 
-  if (classes.length > 0) {
-    const targetElement = getTargetElement(pattern.componentType)
+  // Build style object from dynamic props
+  const styleEntries = dynamicStyleProps.map((p) => `${p.name}: ${p.value}`)
 
-    conversions.push({
-      original: pattern.rawCode,
-      converted: `<${targetElement} className="${classes.join(' ')}">`,
-      confidence: 'high',
-      lineNumber: pattern.sourceLocation.line,
-      type: 'ui-core',
-    })
+  // Check if there's an existing style prop to merge with
+  const existingStyleProp = pattern.passthroughProps.find((p) => p.name === 'style')
+  const otherPassthroughProps = pattern.passthroughProps.filter((p) => p.name !== 'style')
+
+  // Build style attribute
+  let styleAttr = ''
+  if (styleEntries.length > 0 && existingStyleProp) {
+    // Merge dynamic styles with existing style prop using array syntax
+    styleAttr = ` style={[{ ${styleEntries.join(', ')} }, ${existingStyleProp.rawValue}]}`
+  } else if (styleEntries.length > 0) {
+    styleAttr = ` style={{ ${styleEntries.join(', ')} }}`
+  } else if (existingStyleProp) {
+    styleAttr = ` style={${existingStyleProp.rawValue}}`
   }
+
+  // Build passthrough props string (excluding style which is handled above)
+  const passthroughStr = otherPassthroughProps
+    .map((p) => `${p.name}={${p.rawValue}}`)
+    .join(' ')
+
+  const targetElement = getTargetElement(pattern.componentType)
+
+  // Generate output even if there are dynamic props (we handle them in style)
+  const classAttr = classes.length > 0 ? `className="${classes.join(' ')}"` : ''
+  const allAttrs = [classAttr, styleAttr.trim(), passthroughStr].filter(Boolean).join(' ')
+
+  conversions.push({
+    original: pattern.rawCode,
+    converted: `<${targetElement} ${allAttrs}>`,
+    confidence: dynamicStyleProps.length > 0 ? 'medium' : 'high',
+    lineNumber: pattern.sourceLocation.line,
+    type: 'ui-core',
+  })
 
   return { conversions, skipped }
 }

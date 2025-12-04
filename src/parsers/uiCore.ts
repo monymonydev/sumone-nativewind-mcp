@@ -1,4 +1,4 @@
-import type { UiCorePropsPattern, UiCoreProp } from './types.js'
+import type { UiCorePropsPattern, UiCoreProp, PassthroughProp } from './types.js'
 
 const UI_CORE_COMPONENTS = [
   'XStack',
@@ -30,14 +30,15 @@ export function parseUiCoreProps(sourceCode: string): UiCorePropsPattern[] {
     const startIndex = match.index
     const lineNumber = sourceCode.substring(0, startIndex).split('\n').length
 
-    const props = parseProps(propsString)
+    const { props, passthroughProps } = parseProps(propsString)
 
-    // Auto-convertible if all props are static
+    // Auto-convertible if all style props are static
     const isAutoConvertible = props.every((p) => p.isStatic)
 
     patterns.push({
       componentType,
       props,
+      passthroughProps,
       isAutoConvertible,
       sourceLocation: { line: lineNumber, column: 0 },
       rawCode: match[0],
@@ -47,8 +48,9 @@ export function parseUiCoreProps(sourceCode: string): UiCorePropsPattern[] {
   return patterns
 }
 
-function parseProps(propsString: string): UiCoreProp[] {
+function parseProps(propsString: string): { props: UiCoreProp[]; passthroughProps: PassthroughProp[] } {
   const props: UiCoreProp[] = []
+  const passthroughProps: PassthroughProp[] = []
 
   let propMatch: RegExpExecArray | null
   const propRegex = new RegExp(PROP_PATTERN.source, 'g')
@@ -59,8 +61,12 @@ function parseProps(propsString: string): UiCoreProp[] {
     const doubleQuoteValue = propMatch[3] // "value"
     const singleQuoteValue = propMatch[4] // 'value'
 
-    // Skip non-style props
-    if (isNonStyleProp(name)) continue
+    // Track non-style props as passthrough instead of filtering
+    if (isNonStyleProp(name)) {
+      const rawValue = jsxValue || `"${doubleQuoteValue || singleQuoteValue || ''}"`
+      passthroughProps.push({ name, rawValue })
+      continue
+    }
 
     let value: string | number
     let isStatic = true
@@ -85,6 +91,27 @@ function parseProps(propsString: string): UiCoreProp[] {
             ...varMatches.filter((v) => !['true', 'false', 'null', 'undefined'].includes(v))
           )
         }
+        // Check for arithmetic expressions: size / 2, width * 0.5, etc.
+        else if (/[a-z_]\w*\s*[+\-*/]/i.test(value) || /[+\-*/]\s*[a-z_]\w*/i.test(value)) {
+          isStatic = false
+          // Extract variable dependencies
+          const varMatches = value.match(/\b[a-z_]\w*\b/gi) || []
+          dependencies.push(
+            ...varMatches.filter((v) => !['true', 'false', 'null', 'undefined'].includes(v))
+          )
+        }
+        // Check for object property access: color.gray[100], foo.bar
+        else if (/\w+\.\w+/.test(value) || /\w+\[/.test(value)) {
+          isStatic = false
+          // Extract base variable as dependency
+          const baseVar = value.match(/^(\w+)/)?.[1]
+          if (baseVar) dependencies.push(baseVar)
+        }
+        // Check for simple variable reference: size, someVar (not a number)
+        else if (/^[a-z_]\w*$/i.test(value)) {
+          isStatic = false
+          dependencies.push(value)
+        }
 
         // Check for Tamagui tokens
         if (TAMAGUI_TOKEN_PATTERN.test(value)) {
@@ -107,7 +134,7 @@ function parseProps(propsString: string): UiCoreProp[] {
     })
   }
 
-  return props
+  return { props, passthroughProps }
 }
 
 function isNonStyleProp(name: string): boolean {
@@ -126,6 +153,8 @@ function isNonStyleProp(name: string): boolean {
     'source',
     'variant',
     'asChild',
+    'style',
+    'activeOpacity',
   ]
   return nonStyleProps.includes(name)
 }
