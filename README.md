@@ -68,16 +68,6 @@ Claude Code = **실제 파일 작성** 담당
 
 ---
 
-## 변환 분류
-
-| 분류 | 설명 | 처리 |
-|------|------|------|
-| auto | 정적 스타일 | 자동 변환 |
-| ai-assisted | variants | CVA 제안 |
-| manual | 동적 props | 수동 작업 |
-
----
-
 ## 지원 패턴
 
 - `styled-components/native`
@@ -86,7 +76,7 @@ Claude Code = **실제 파일 작성** 담당
 
 ---
 
-## 팁
+## 주의사항
 
 - 레거시 토큰 (`theme.main.colors.*`) → `legacy-*` 클래스
 - 로케일별 typography 다름 (ko/en/ja 등)
