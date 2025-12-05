@@ -5,7 +5,7 @@ styled-components/Tamagui/@monymony-public/ui-core → NativeWind 마이그레�
 ## 설치
 
 ```bash
-bun install && bun run build
+yarn && yarn build
 ```
 
 ## MCP 설정
@@ -19,9 +19,9 @@ claude mcp add -s project sumone-nativewind-mcp -- node $PATH_TO_SUMONE_NATIVEWI
 ## 개발
 
 ```bash
-bun run dev      # Watch mode
-bun run test     # Run tests
-bun run test:run # Run tests once
+yarn dev      # Watch mode
+yarn test     # Run tests
+yarn test:run # Run tests once
 ```
 
 ---
