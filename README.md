@@ -10,17 +10,8 @@ bun install && bun run build
 
 ## MCP 설정
 
-프로젝트 루트에 `.mcp.json` 생성:
-
-```json
-{
-  "mcpServers": {
-    "sumone-nativewind-mcp": {
-      "command": "node",
-      "args": ["$PATH_TO_SUMONE_NATIVEWIND_MCP/dist/index.js"]
-    }
-  }
-}
+```bash
+claude mcp add -s project sumone-nativewind-mcp -- node $PATH_TO_SUMONE_NATIVEWIND_MCP/dist/index.js
 ```
 
 확인: `/mcp`
