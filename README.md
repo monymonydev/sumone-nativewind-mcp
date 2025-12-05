@@ -1,50 +1,98 @@
 # sumone-nativewind-mcp
 
-MCP server for migrating React Native styling from styled-components/Tamagui/@monymony-public/ui-core to NativeWind.
+styled-components/Tamagui/@monymony-public/ui-core → NativeWind 마이그레이션용 MCP 서버
 
-## Tools
-
-### `analyze_component`
-Analyze styling patterns in a React Native component file. Returns categorization of patterns as auto-convertible, AI-assisted, or manual.
-
-### `convert_styles`
-Auto-convert deterministic styling patterns to NativeWind className syntax.
-
-### `get_token_mapping`
-Map a Tamagui/ui-theme token to its Tailwind class equivalent.
-
-### `suggest_migration`
-Generate migration spec for complex styling patterns (cva for variants, clsx for conditionals).
-
-### `batch_analyze`
-Analyze multiple files in a directory for migration planning.
-
-## Setup
+## 설치
 
 ```bash
-yarn install
-yarn build
+bun install && bun run build
 ```
 
-## Usage
-
-Add to Claude Code MCP config:
-
-```json
-{
-  "mcpServers": {
-    "sumone-nativewind-mcp": {
-      "command": "node",
-      "args": ["/path/to/sumone-nativewind-mcp/dist/index.js"]
-    }
-  }
-}
-```
-
-## Development
+## MCP 설정
 
 ```bash
-yarn dev      # Watch mode
-yarn test     # Run tests
-yarn test:run # Run tests once
+claude mcp add --transport stdio sumone-nativewind-mcp node $PATH_TO_SUMONE_NATIVEWIND_MCP/dist/index.js
 ```
+
+확인:
+```bash
+claude mcp list
+```
+
+## 개발
+
+```bash
+bun run dev      # Watch mode
+bun run test     # Run tests
+bun run test:run # Run tests once
+```
+
+---
+
+# 사용 가이드
+
+## 개요
+
+MCP 도구 = **분석 + 제안** 담당
+Claude Code = **실제 파일 작성** 담당
+
+---
+
+## 마이그레이션 워크플로우
+
+### Step 1: Plan Mode 진입
+```
+/plan
+```
+
+### Step 2: 자연어로 요청
+```
+"sumone-mobile의 ComponentA를 sumone-new-arch로 마이그레이션해줘"
+```
+
+### Step 3: Claude가 MCP 도구로 분석
+- `analyze_component` → 패턴 파악
+- `suggest_migration` → 변환 방법 제안
+- `get_token_mapping` → 토큰 매핑 확인
+
+### Step 4: 계획 승인 후 실행
+- Claude Code가 제안 기반으로 실제 파일 작성
+
+---
+
+## 도구 목록
+
+| 도구 | 용도 |
+|------|------|
+| `analyze_component` | 스타일 패턴 분석 |
+| `convert_styles` | 변환 제안 (dryRun) |
+| `get_token_mapping` | 토큰 → Tailwind 매핑 |
+| `suggest_migration` | 복잡 패턴 마이그레이션 제안 |
+| `batch_analyze` | 디렉토리 전체 스캔 |
+| `generate_tailwind_config` | Tailwind 설정 생성 |
+
+---
+
+## 변환 분류
+
+| 분류 | 설명 | 처리 |
+|------|------|------|
+| auto | 정적 스타일 | 자동 변환 |
+| ai-assisted | variants | CVA 제안 |
+| manual | 동적 props | 수동 작업 |
+
+---
+
+## 지원 패턴
+
+- `styled-components/native`
+- `Tamagui styled()`
+- `@monymony-public/ui-core` (XStack, YStack, Typography, Button)
+
+---
+
+## 팁
+
+- 레거시 토큰 (`theme.main.colors.*`) → `legacy-*` 클래스
+- 로케일별 typography 다름 (ko/en/ja 등)
+- `batch_analyze`로 전체 범위 먼저 파악
