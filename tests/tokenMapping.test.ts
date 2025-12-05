@@ -55,7 +55,7 @@ describe('token mapping', () => {
       const result = mapTypographyToken('$body2R')
 
       expect(result.category).toBe('typography')
-      expect(result.tailwindClass).toContain('font-pretendard')
+      expect(result.tailwindClass).toContain('font-body-ko')
       expect(result.tailwindClass).toContain('text-[15px]')
     })
 

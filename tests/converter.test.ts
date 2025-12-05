@@ -94,10 +94,99 @@ describe('conversion rules', () => {
   })
 
   describe('opacity', () => {
-    it('converts opacity', () => {
+    it('converts standard opacity values', () => {
+      expect(convertProperty('opacity', 0)).toBe('opacity-0')
       expect(convertProperty('opacity', 0.5)).toBe('opacity-50')
       expect(convertProperty('opacity', 1)).toBe('opacity-100')
       expect(convertProperty('opacity', 0.8)).toBe('opacity-80')
+      expect(convertProperty('opacity', 0.25)).toBe('opacity-25')
+    })
+
+    it('uses arbitrary for non-standard opacity', () => {
+      expect(convertProperty('opacity', 0.04)).toBe('opacity-[0.04]')
+      expect(convertProperty('opacity', 0.08)).toBe('opacity-[0.08]')
+      expect(convertProperty('opacity', 0.12)).toBe('opacity-[0.12]')
+    })
+  })
+
+  describe('aspectRatio', () => {
+    it('converts fraction format', () => {
+      expect(convertProperty('aspectRatio', '343/54')).toBe('aspect-[343/54]')
+      expect(convertProperty('aspectRatio', '16/9')).toBe('aspect-[16/9]')
+      expect(convertProperty('aspectRatio', '3/4')).toBe('aspect-[3/4]')
+    })
+
+    it('converts square', () => {
+      expect(convertProperty('aspectRatio', 1)).toBe('aspect-square')
+      expect(convertProperty('aspectRatio', '1')).toBe('aspect-square')
+      expect(convertProperty('aspectRatio', '1/1')).toBe('aspect-square')
+    })
+
+    it('converts float', () => {
+      expect(convertProperty('aspectRatio', 1.78)).toBe('aspect-[1.78]')
+      expect(convertProperty('aspectRatio', '0.75')).toBe('aspect-[0.75]')
+    })
+  })
+
+  describe('letterSpacing', () => {
+    it('converts zero to normal', () => {
+      expect(convertProperty('letterSpacing', 0)).toBe('tracking-normal')
+    })
+
+    it('converts decimal values', () => {
+      expect(convertProperty('letterSpacing', 0.18)).toBe('tracking-[0.18px]')
+      expect(convertProperty('letterSpacing', 1)).toBe('tracking-[1px]')
+      expect(convertProperty('letterSpacing', -0.5)).toBe('tracking-[-0.5px]')
+    })
+  })
+
+  describe('rotate', () => {
+    it('converts degree strings', () => {
+      expect(convertProperty('rotate', '25deg')).toBe('rotate-[25deg]')
+      expect(convertProperty('rotate', '-3deg')).toBe('rotate-[-3deg]')
+    })
+
+    it('converts numbers as degrees', () => {
+      expect(convertProperty('rotate', 25)).toBe('rotate-[25deg]')
+      expect(convertProperty('rotate', -3)).toBe('rotate-[-3deg]')
+    })
+  })
+
+  describe('rotateZ', () => {
+    it('converts to rotate class', () => {
+      expect(convertProperty('rotateZ', '-6deg')).toBe('rotate-[-6deg]')
+      expect(convertProperty('rotateZ', '6deg')).toBe('rotate-[6deg]')
+    })
+  })
+
+  describe('scale', () => {
+    it('converts standard scale values', () => {
+      expect(convertProperty('scale', 0.5)).toBe('scale-50')
+      expect(convertProperty('scale', 1.5)).toBe('scale-150')
+      expect(convertProperty('scale', 0.75)).toBe('scale-75')
+    })
+
+    it('uses arbitrary for non-standard', () => {
+      expect(convertProperty('scale', 1.3)).toBe('scale-[1.3]')
+      expect(convertProperty('scale', 1.15)).toBe('scale-[1.15]')
+    })
+
+    it('returns null for scale 1 (default)', () => {
+      expect(convertProperty('scale', 1)).toBe(null)
+    })
+  })
+
+  describe('zIndex', () => {
+    it('uses standard for common values', () => {
+      expect(convertProperty('zIndex', 0)).toBe('z-0')
+      expect(convertProperty('zIndex', 10)).toBe('z-10')
+      expect(convertProperty('zIndex', 50)).toBe('z-50')
+    })
+
+    it('uses arbitrary for non-standard', () => {
+      expect(convertProperty('zIndex', 1)).toBe('z-[1]')
+      expect(convertProperty('zIndex', 99999)).toBe('z-[99999]')
+      expect(convertProperty('zIndex', 1000)).toBe('z-[1000]')
     })
   })
 })
@@ -155,6 +244,7 @@ describe('simpleConverter', () => {
           { name: 'alignItems', value: 'center', isStatic: true },
           { name: 'gap', value: 4, isStatic: true },
         ],
+        passthroughProps: [],
         isAutoConvertible: true,
         sourceLocation: { line: 1, column: 0 },
         rawCode: '<XStack alignItems="center" gap={4}>',
@@ -178,6 +268,7 @@ describe('simpleConverter', () => {
             tamaguiToken: '$coral100',
           },
         ],
+        passthroughProps: [],
         isAutoConvertible: true,
         sourceLocation: { line: 1, column: 0 },
         rawCode: '<YStack backgroundColor="$coral100">',

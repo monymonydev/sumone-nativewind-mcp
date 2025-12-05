@@ -207,7 +207,18 @@ export const CONVERSION_RULES: ConversionRule[] = [
   { property: 'bottom', convert: (v) => convertSpacingValue(v, 'bottom-') },
   { property: 'left', convert: (v) => convertSpacingValue(v, 'left-') },
   { property: 'right', convert: (v) => convertSpacingValue(v, 'right-') },
-  { property: 'zIndex', convert: (v) => `z-${v}` },
+  {
+    property: 'zIndex',
+    convert: (v) => {
+      const num = typeof v === 'number' ? v : parseInt(String(v), 10)
+      if (isNaN(num)) return null
+      if (v === 'auto') return 'z-auto'
+      // Standard Tailwind z-index: 0, 10, 20, 30, 40, 50
+      const standard = [0, 10, 20, 30, 40, 50]
+      if (standard.includes(num)) return `z-${num}`
+      return `z-[${num}]`
+    },
+  },
 
   // Colors
   { property: 'backgroundColor', convert: (v) => convertColorValue(String(v), 'bg-') },
@@ -251,12 +262,34 @@ export const CONVERSION_RULES: ConversionRule[] = [
       const num = typeof v === 'number' ? v : parseFloat(String(v))
       if (isNaN(num)) return null
       const percent = Math.round(num * 100)
-      return `opacity-${percent}`
+      // Standard: 0, 5, 10, 15, 20, 25, ..., 95, 100
+      if (percent >= 0 && percent <= 100 && percent % 5 === 0) {
+        return `opacity-${percent}`
+      }
+      return `opacity-[${num}]`
     },
   },
 
   // Overflow
   { property: 'overflow', convert: (v) => OVERFLOW[String(v)] ?? null },
+
+  // Aspect Ratio
+  {
+    property: 'aspectRatio',
+    convert: (v) => {
+      const str = String(v)
+      if (v === 1 || str === '1' || str === '1/1') return 'aspect-square'
+      // Fraction format: 343/54, 16/9, etc. - preserve as-is
+      if (/^\d+\s*\/\s*\d+$/.test(str)) {
+        return `aspect-[${str.replace(/\s/g, '')}]`
+      }
+      // Numeric (float)
+      if (typeof v === 'number' || /^\d+(\.\d+)?$/.test(str)) {
+        return `aspect-[${str}]`
+      }
+      return null
+    },
+  },
 
   // Text
   { property: 'textAlign', convert: (v) => TEXT_ALIGN[String(v)] ?? null },
@@ -273,6 +306,56 @@ export const CONVERSION_RULES: ConversionRule[] = [
     convert: (v) => {
       const px = typeof v === 'number' ? v : parsePixelValue(String(v))
       return px !== null ? `leading-[${px}px]` : null
+    },
+  },
+  {
+    property: 'letterSpacing',
+    convert: (v) => {
+      const num = typeof v === 'number' ? v : parseFloat(String(v))
+      if (isNaN(num)) return null
+      if (num === 0) return 'tracking-normal'
+      return `tracking-[${num}px]`
+    },
+  },
+
+  // Transform
+  {
+    property: 'rotate',
+    convert: (v) => {
+      const str = String(v)
+      // Extract degrees: '25deg', '-2deg', '25', -2
+      const match = str.match(/^(-?\d+(?:\.\d+)?)(deg)?$/)
+      if (match) {
+        const deg = match[1]
+        return `rotate-[${deg}deg]`
+      }
+      return null
+    },
+  },
+  {
+    property: 'rotateZ',
+    convert: (v) => {
+      // Same logic as rotate - rotateZ is RN's way of expressing 2D rotation
+      const str = String(v)
+      const match = str.match(/^(-?\d+(?:\.\d+)?)(deg)?$/)
+      if (match) {
+        const deg = match[1]
+        return `rotate-[${deg}deg]`
+      }
+      return null
+    },
+  },
+  {
+    property: 'scale',
+    convert: (v) => {
+      const num = typeof v === 'number' ? v : parseFloat(String(v))
+      if (isNaN(num)) return null
+      if (num === 1) return null // scale-100 is default, omit
+      // Standard scales: 0, 50, 75, 90, 95, 100, 105, 110, 125, 150
+      const standard = [0, 50, 75, 90, 95, 100, 105, 110, 125, 150]
+      const percent = Math.round(num * 100)
+      if (standard.includes(percent)) return `scale-${percent}`
+      return `scale-[${num}]`
     },
   },
 ]
