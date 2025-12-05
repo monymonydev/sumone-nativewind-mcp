@@ -38,9 +38,7 @@ Claude Code = **실제 파일 작성** 담당
 ## 마이그레이션 워크플로우
 
 ### Step 1: Plan Mode 진입
-```
-/plan
-```
+`Shift+Tab`
 
 ### Step 2: 자연어로 요청
 ```
