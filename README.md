@@ -42,7 +42,7 @@ Claude Code = **실제 파일 작성** 담당
 
 ### Step 2: 자연어로 요청
 ```
-"sumone-mobile의 ComponentA를 sumone-new-arch로 마이그레이션해줘"
+"sumone-mobile의 ComponentA를 sumone-new-arch로 마이그레이션해줘. sumone-nativewind-mcp를 사용해."
 ```
 
 ### Step 3: Claude가 MCP 도구로 분석
